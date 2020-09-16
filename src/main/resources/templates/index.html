@@ -1,0 +1,53 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Calculations</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+        div, form, p {
+            display: inline-block;
+        }
+        button, input[type="text"] {
+            margin: 0 5px; 
+        }
+        h3 {
+            margin: 0 0 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h3>Жлобич Анна Валентина Викторовна, 4 курс, 4 группа, 2020</h3>
+    <form id="calc">
+        <input type="text" name="number1" id="number1" value="0">
+        <label for="plus"><input type="radio" id="plus" name="sign" value="sum" checked>+</label>
+        <label for="minus"><input type="radio" id="minus" name="sign" value="diff">-</label>
+        <input type="text" name="number2" id="number2" value="0">
+    </form>
+    <div class="result">
+        <button name="equals" onclick="getResult()">=</button>
+        <p id="result">0</p>        
+    </div>
+
+    <script>
+        async function getResult() {
+            let operation = document.getElementById('calc').sign.value;
+            let result = await getServerCalculations(operation);
+            document.getElementById('result').innerText = result;
+        }
+        async function getServerCalculations(operation) {
+            let num1 = document.getElementById('number1').value.replace(',', '.');
+            let num2 = document.getElementById('number2').value.replace(',', '.');
+            if (isNaN(num1) || isNaN(num2) || num1.includes('e') || num1.includes('E') || num2.includes('e') || num2.includes('E')) {
+                return "error";
+            }
+            let response = await fetch(operation + '?number1=' + num1 + '&number2=' + num2);
+            if (response.ok) {
+                let result = await response.text();
+                return result;
+            } else {
+                return response.statusText;
+            }
+        }
+    </script>
+</body>
+</html>
