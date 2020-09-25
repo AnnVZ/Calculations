@@ -1,29 +1,36 @@
 <!DOCTYPE HTML>
 <html>
+
 <head>
     <title>Calculations</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <style type="text/css">
-        div, form, p {
+        div,
+        form,
+        p {
             display: inline-block;
         }
-        button, input[type="text"] {
-            margin: 0 5px; 
+        button,
+        input[type="text"] {
+            margin: 0 7px;
         }
         h3 {
             margin: 0 0 20px 0;
         }
     </style>
 </head>
+
 <body>
     <h3>Жлобич Анна Валентина Викторовна, 4 курс, 4 группа, 2020</h3>
     <form id="calc">
         <input type="text" name="number1" id="number1" value="0">
-        <label for="plus"><input type="radio" id="plus" name="sign" value="sum" checked>+</label>
-        <label for="minus"><input type="radio" id="minus" name="sign" value="diff">-</label>
+        <label for="sum"><input type="radio" id="sum" name="sign" value="sum" checked>+</label>
+        <label for="dif"><input type="radio" id="dif" name="sign" value="dif">-</label>
+        <label for="mult"><input type="radio" id="mult" name="sign" value="mult">*</label>
+        <label for="div"><input type="radio" id="div" name="sign" value="div">/</label>
         <input type="text" name="number2" id="number2" value="0">
     </form>
-    <div class="result">
+    <div>
         <button name="equals" onclick="getResult()">=</button>
         <p id="result">0</p>        
     </div>
@@ -31,23 +38,46 @@
     <script>
         async function getResult() {
             let operation = document.getElementById('calc').sign.value;
-            let result = await getServerCalculations(operation);
+            let num1 = correctNumber(document.getElementById('number1').value);
+            let num2 = correctNumber(document.getElementById('number2').value);
+            let result;
+            if (num1 == null || num2 ==  null) {
+                result = 'error';
+            } else if (operation == 'div' && num2 == 0) {
+                result = 'division by zero!';
+            } else {
+                result = await getServerCalculations(operation, num1, num2);    
+            }
             document.getElementById('result').innerText = result;
         }
-        async function getServerCalculations(operation) {
-            let num1 = document.getElementById('number1').value.replace(',', '.');
-            let num2 = document.getElementById('number2').value.replace(',', '.');
-            if (isNaN(num1) || isNaN(num2) || num1.includes('e') || num1.includes('E') || num2.includes('e') || num2.includes('E')) {
-                return "error";
-            }
+        
+        async function getServerCalculations(operation, num1, num2) {
             let response = await fetch(operation + '?number1=' + num1 + '&number2=' + num2);
             if (response.ok) {
                 let result = await response.text();
-                return result;
+                return toSpacedForm(result);
             } else {
                 return response.statusText;
             }
         }
+        
+        function correctNumber(num) {
+            let correctNumber = num.replace(',', '.');
+            let matchResult = correctNumber.match(/-?[0-9]{1,3}( [0-9]{3})*(.[0-9]*)?/) || [];
+            if (matchResult.length != 0 && matchResult[0] == correctNumber) {
+                return correctNumber.replace(/ /g, '');
+            }
+            matchResult = correctNumber.match(/-?[0-9]*.?[0-9]*/) || [];
+            if (matchResult.length != 0 && matchResult[0] == correctNumber && correctNumber != '.' && correctNumber != '-') {
+                return correctNumber;
+            }
+            return null;
+        }
+        
+        function toSpacedForm(result) {
+            return result.replace(/,/g, ' ');
+        }
     </script>
 </body>
+
 </html>
