@@ -7,58 +7,138 @@
     <style type="text/css">
         div,
         form,
-        p {
+        p,
+        h1,
+        h4,
+        pre {
             display: inline-block;
         }
         button,
         input[type="text"] {
             margin: 0 7px;
         }
-        h3 {
+        .title {
             margin: 0 0 20px 0;
+            display: block;
+        }
+        .rounding {
+            display: block;
+        }
+        .rounding label {
+           display: block;
         }
     </style>
 </head>
 
 <body>
-    <h3>Жлобич Анна Валентина Викторовна, 4 курс, 4 группа, 2020</h3>
+    <h3 class="title">Жлобич Анна Валентина Викторовна, 4 курс, 4 группа, 2020</h3>
     <form id="calc">
         <input type="text" name="number1" id="number1" value="0">
-        <label for="sum"><input type="radio" id="sum" name="sign" value="sum" checked>+</label>
-        <label for="dif"><input type="radio" id="dif" name="sign" value="dif">-</label>
-        <label for="mult"><input type="radio" id="mult" name="sign" value="mult">*</label>
-        <label for="div"><input type="radio" id="div" name="sign" value="div">/</label>
+        <label for="sum1"><input type="radio" id="sum1" name="sign1" value="sum" checked>+</label>
+        <label for="dif1"><input type="radio" id="dif1" name="sign1" value="dif">-</label>
+        <label for="mult1"><input type="radio" id="mult1" name="sign1" value="mult">*</label>
+        <label for="div1"><input type="radio" id="div1" name="sign1" value="div">/</label>
+        <h1>(</h1>
         <input type="text" name="number2" id="number2" value="0">
+        <label for="sum2"><input type="radio" id="sum2" name="sign2" value="sum" checked>+</label>
+        <label for="dif2"><input type="radio" id="dif2" name="sign2" value="dif">-</label>
+        <label for="mult2"><input type="radio" id="mult2" name="sign2" value="mult">*</label>
+        <label for="div2"><input type="radio" id="div2" name="sign2" value="div">/</label>
+        <input type="text" name="number3" id="number3" value="0">
+        <h1>)</h1>
+        <label for="sum3"><input type="radio" id="sum3" name="sign3" value="sum" checked>+</label>
+        <label for="dif3"><input type="radio" id="dif3" name="sign3" value="dif">-</label>
+        <label for="mult3"><input type="radio" id="mult3" name="sign3" value="mult">*</label>
+        <label for="div3"><input type="radio" id="div3" name="sign3" value="div">/</label>
+        <input type="text" name="number4" id="number4" value="0">
     </form>
     <div>
         <button name="equals" onclick="getResult()">=</button>
         <p id="result">0</p>        
     </div>
+    <br>
+    <form id="rounding" class="rounding">
+        <p>Округление до целых</p>
+        <label for="math"><input type="radio" id="math" name="rounding" value="math" onclick="setRoundedResult(this.value)" checked>математическое</label>
+        <label for="bank"><input type="radio" id="bank" name="rounding" value="bank" onclick="setRoundedResult(this.value)">банковское (бухгалтерское)</label>
+        <label for="trunc"><input type="radio" id="trunc" name="rounding" value="trunc" onclick="setRoundedResult(this.value)">усечение</label>
+        <pre>Результат округления: </pre>
+        <p id="roundingResult">0</p>
+    </form>
 
     <script>
         async function getResult() {
-            let operation = document.getElementById('calc').sign.value;
+            let form = document.getElementById('calc');
+            let oper1 = form.sign1.value;
+            let oper2 = form.sign2.value;
+            let oper3 = form.sign3.value;
             let num1 = correctNumber(document.getElementById('number1').value);
             let num2 = correctNumber(document.getElementById('number2').value);
+            let num3 = correctNumber(document.getElementById('number3').value);
+            let num4 = correctNumber(document.getElementById('number4').value);
             let result;
-            if (num1 == null || num2 ==  null) {
+            if (num1 == null || num2 == null || num3 == null || num4 == null) {
                 result = 'error';
-            } else if (operation == 'div' && num2 == 0) {
-                result = 'division by zero!';
             } else {
-                result = await getServerCalculations(operation, num1, num2);    
+                result = await getServerCalculations(oper2, num2, num3);
+                if (matchNumber(result)) {
+                    if (oper3 == 'mult' || oper3 == 'div') {
+                        result = await getServerCalculations(oper3, result, num4);
+                        if (matchNumber(result)) {
+                            result = await getServerCalculations(oper1, num1, result);
+                        }
+                    } else {
+                        result = await getServerCalculations(oper1, num1, result);
+                        if (matchNumber(result)) {
+                            result = await getServerCalculations(oper3, result, num4);
+                        }
+                    }
+                    if (matchNumber(result)) {
+                        result = await getFormattedNumber(result);
+                    }
+                }
             }
             document.getElementById('result').innerText = result;
+            setRoundedResult(document.getElementById('rounding').rounding.value);
+        }
+
+        async function setRoundedResult(mode) {
+            let response = await fetch(mode + 'round?number=' + deleteSpaces(document.getElementById('result').innerText));
+            let result;
+            if (response.ok) {
+                result = await response.text();
+                result = await getFormattedNumber(result);
+            } else {
+                result = response.statusText;
+            }
+            document.getElementById('roundingResult').innerText = result;
+        }
+
+        async function getFormattedNumber(num) {
+            let response = await fetch('spaceformat' + '?number=' + num);
+            if (response.ok) {
+                let result = await response.text();
+                return result;
+            } else {
+                return response.statusText;
+            }
         }
         
         async function getServerCalculations(operation, num1, num2) {
             let response = await fetch(operation + '?number1=' + num1 + '&number2=' + num2);
             if (response.ok) {
                 let result = await response.text();
-                return toSpacedForm(result);
+                return result;
+            } else if (response.status == 409) {
+                return 'division by zero!';
             } else {
                 return response.statusText;
             }
+        }
+
+        function matchNumber(num) {
+            let matchResult = num.match(/-?[0-9]*\.?[0-9]*/) || [];
+            return matchResult.length != 0 && matchResult[0] == num;
         }
         
         function correctNumber(num) {
@@ -74,8 +154,8 @@
             return null;
         }
         
-        function toSpacedForm(result) {
-            return result.replace(/,/g, ' ');
+        function deleteSpaces(num) {
+            return num.toString().replace(/ /g, '');
         }
     </script>
 </body>
